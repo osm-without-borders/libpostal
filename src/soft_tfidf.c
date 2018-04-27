@@ -125,7 +125,7 @@ static inline size_t sum_token_lengths(size_t num_tokens, char **tokens) {
 }
 
 
-double soft_tfidf_similarity_with_phrases_and_acronyms(size_t num_tokens1, char **tokens1, double *token_scores1, phrase_array *phrases1, size_t num_tokens2, char **tokens2, double *token_scores2, phrase_array *phrases2, phrase_array *acronym_alignments, soft_tfidf_options_t options, size_t *num_matches) {
+double soft_tfidf_similarity_with_phrases_and_acronyms(size_t num_tokens1, char **tokens1, double *token_scores1, phrase_array *phrases1, uint32_array *ordinal_suffixes1, size_t num_tokens2, char **tokens2, double *token_scores2, phrase_array *phrases2, uint32_array *ordinal_suffixes2, phrase_array *acronym_alignments, phrase_array *multi_word_alignments, soft_tfidf_options_t options, size_t *num_matches) {
     if (token_scores1 == NULL || token_scores2 == NULL) return 0.0;
 
     if (num_tokens1 > num_tokens2 || (num_tokens1 == num_tokens2 && sum_token_lengths(num_tokens1, tokens1) > sum_token_lengths(num_tokens2, tokens2))) {
@@ -139,6 +139,10 @@ double soft_tfidf_similarity_with_phrases_and_acronyms(size_t num_tokens1, char 
         phrase_array *tmp_phrases = phrases1;
         phrases1 = phrases2;
         phrases2 = tmp_phrases;
+
+        uint32_array *tmp_suffixes = ordinal_suffixes1;
+        ordinal_suffixes1 = ordinal_suffixes2;
+        ordinal_suffixes2 = tmp_suffixes;
 
         size_t tmp_num_tokens = num_tokens1;
         num_tokens1 = num_tokens2;
@@ -163,6 +167,9 @@ double soft_tfidf_similarity_with_phrases_and_acronyms(size_t num_tokens1, char 
 
     int64_array *acronym_memberships_array = NULL;
     int64_t *acronym_memberships = NULL;
+
+    int64_array *multi_word_memberships_array = NULL;
+    int64_t *multi_word_memberships = NULL;
 
     t1_tokens_unicode = calloc(len1, sizeof(uint32_array *));
     if (t1_tokens_unicode == NULL) {
@@ -217,6 +224,22 @@ double soft_tfidf_similarity_with_phrases_and_acronyms(size_t num_tokens1, char 
         }
     }
 
+    if (multi_word_alignments != NULL) {
+        multi_word_memberships_array = int64_array_new();
+        token_phrase_memberships(multi_word_alignments, multi_word_memberships_array, len2);
+        if (multi_word_memberships_array->n == len2) {
+            multi_word_memberships = multi_word_memberships_array->a;
+        }
+    }
+
+    uint32_t *suffixes1;
+    uint32_t *suffixes2;
+
+    if (ordinal_suffixes1 != NULL && ordinal_suffixes2 != NULL) {
+        suffixes1 = ordinal_suffixes1->a;
+        suffixes2 = ordinal_suffixes2->a;
+    }
+
     double jaro_winkler_min = options.jaro_winkler_min;
     size_t jaro_winkler_min_length = options.jaro_winkler_min_length;
     size_t damerau_levenshtein_max = options.damerau_levenshtein_max;
@@ -249,12 +272,22 @@ double soft_tfidf_similarity_with_phrases_and_acronyms(size_t num_tokens1, char 
         bool have_abbreviation = false;
         bool have_strict_abbreviation = false;
         bool have_acronym_match = false;
+        size_t last_ordinal_suffix = 0;
+        bool have_ordinal_suffix = false;
         phrase_t acronym_phrase = NULL_PHRASE;
         bool have_phrase_match = false;
         int64_t pm1 = phrase_memberships1 != NULL ? phrase_memberships1[i] : NULL_PHRASE_MEMBERSHIP;
         phrase_t p1 = pm1 >= 0 ? phrases1->a[pm1] : NULL_PHRASE;
         phrase_t argmax_phrase = NULL_PHRASE;
-    
+
+        uint32_t ordinal_suffix_i = 0;
+        if (suffixes1 != NULL) {
+            ordinal_suffix_i = suffixes1[i];
+        }
+
+        bool have_multi_word_match = false;
+        phrase_t multi_word_phrase = NULL_PHRASE;        
+
         bool use_jaro_winkler = t1_len >= jaro_winkler_min_length;
         bool use_strict_abbreviation_sim = t1_len >= strict_abbreviation_min_length;
         bool use_damerau_levenshtein = damerau_levenshtein_max > 0 && t1_len >= damerau_levenshtein_min_length;
@@ -272,12 +305,19 @@ double soft_tfidf_similarity_with_phrases_and_acronyms(size_t num_tokens1, char 
             continue;
         }
 
+        size_t slen1 = strlen(tokens1[i]);
+
         for (size_t j = 0; j < len2; j++) {
             t2u = t2_tokens_unicode[j];
 
             log_debug("t2 = %s\n", tokens2[j]);
             int64_t pm2 = phrase_memberships2 != NULL ? phrase_memberships2[j] : NULL_PHRASE_MEMBERSHIP;
             phrase_t p2 = pm2 >= 0 ? phrases2->a[pm2] : NULL_PHRASE;
+
+            uint32_t ordinal_suffix_j = 0;
+            if (suffixes2 != NULL) {
+                ordinal_suffix_j = suffixes2[j];
+            }
 
             canonical_match_t canonical_response = CANONICAL_NO_MATCH;
             if (p1.len > 0 && p2.len > 0 && phrases_have_same_canonical(num_tokens1, tokens1, num_tokens2, tokens2, p1, p2, &canonical_response)) {
@@ -315,6 +355,23 @@ double soft_tfidf_similarity_with_phrases_and_acronyms(size_t num_tokens1, char 
                 }
             }
 
+            if (multi_word_memberships != NULL) {
+                int64_t multi_word_membership = multi_word_memberships[j];
+                log_debug("multi_word_membership = %zd\n", multi_word_membership);
+                if (multi_word_membership >= 0) {
+                   multi_word_phrase = multi_word_alignments->a[multi_word_membership];
+                   uint32_t multi_word_match_index = multi_word_phrase.data;
+                   if (multi_word_match_index == i) {
+                        max_sim = 1.0;
+                        argmax_sim = j;
+                        have_multi_word_match = true;
+                        log_debug("have multi-word match\n");
+                        break;
+                   }
+                }
+            }
+
+
             double jaro_winkler = jaro_winkler_distance_unicode(t1u, t2u);
             if (jaro_winkler > max_sim) {
                 max_sim = jaro_winkler;
@@ -344,12 +401,24 @@ double soft_tfidf_similarity_with_phrases_and_acronyms(size_t num_tokens1, char 
                 }
             }
 
+            if (ordinal_suffix_i > 0) {
+                size_t slen2 = strlen(tokens2[j]);
+                if (utf8_common_prefix_len(tokens1[i], tokens2[j], slen2) == slen2) {
+                    last_ordinal_suffix = j;
+                    have_ordinal_suffix = true;
+                }
+            } else if (ordinal_suffix_j > 0) {
+                if (utf8_common_prefix_len(tokens1[i], tokens2[j], slen1) == slen1) {
+                    last_ordinal_suffix = j;
+                    have_ordinal_suffix = true;
+                }
+            }
         }
 
         // Note: here edit distance, affine gap and abbreviations are only used in the thresholding process.
         // Jaro-Winkler is still used to calculate similarity
 
-        if (!have_acronym_match && !have_phrase_match) {
+        if (!have_acronym_match && !have_phrase_match && !have_multi_word_match) {
             if (have_equal || (use_jaro_winkler && (max_sim > jaro_winkler_min || double_equals(max_sim, jaro_winkler_min)))) {
                 log_debug("jaro-winkler, max_sim = %f\n", max_sim);
                 t2_score = token_scores2[argmax_sim];
@@ -388,6 +457,11 @@ double soft_tfidf_similarity_with_phrases_and_acronyms(size_t num_tokens1, char 
                 t2_score = token_scores2[last_abbreviation];
                 total_sim += last_abbreviation_sim * t1_score * t2_score;
                 matched_tokens++;
+            } else if (have_ordinal_suffix) {
+                log_debug("have ordinal suffix from %zu\n", last_ordinal_suffix);
+                t2_score = token_scores2[last_ordinal_suffix];
+                total_sim += 1.0 * t1_score * t2_score;
+                matched_tokens++;
             }
         } else if (have_phrase_match) {
             double p2_score = 0.0;
@@ -407,7 +481,33 @@ double soft_tfidf_similarity_with_phrases_and_acronyms(size_t num_tokens1, char 
 
             matched_tokens += p1.len;
             log_debug("have_phrase_match\n");
-        } else {
+        } else if (have_multi_word_match) {
+            double multi_word_score = 0.0;
+            for (size_t p = multi_word_phrase.start; p < multi_word_phrase.start + multi_word_phrase.len; p++) {
+                t2_score = token_scores2[p];
+                multi_word_score += t2_score * t2_score;
+            }
+
+            double norm_multi_word_score = sqrt(multi_word_score);
+
+            double max_multi_word_score = 0.0;
+            if (t1_score > norm_multi_word_score || double_equals(t1_score, norm_multi_word_score)) {
+                norm2_offset += (t1_score * t1_score) - multi_word_score;
+                log_debug("t1_score >= norm_multi_word_score, norm2_offset = %f\n", norm2_offset);
+                max_multi_word_score = t1_score;
+            } else {
+                norm1_offset += multi_word_score - (t1_score * t1_score);
+                log_debug("norm_multi_word_score > t1_score, norm1_offset = %f\n", norm1_offset);
+                max_multi_word_score = norm_multi_word_score;
+            }
+
+            log_debug("max_multi_word_score = %f\n", max_multi_word_score);
+
+            total_sim += max_multi_word_score * max_multi_word_score;
+
+            log_debug("have multi-word match\n");
+            matched_tokens++;
+        } else if (have_acronym_match) {
             double acronym_score = 0.0;
             for (size_t p = acronym_phrase.start; p < acronym_phrase.start + acronym_phrase.len; p++) {
                 t2_score = token_scores2[p];
@@ -475,6 +575,10 @@ return_soft_tfidf_score:
         int64_array_destroy(acronym_memberships_array);
     }
 
+    if (multi_word_memberships_array != NULL) {
+        int64_array_destroy(multi_word_memberships_array);
+    }
+
     double norm = sqrt(double_array_sum_sq(token_scores1, num_tokens1) + norm1_offset) * sqrt(double_array_sum_sq(token_scores2, num_tokens2) + norm2_offset);
     log_debug("total_sim = %f, norm1_offset = %f, norm2_offset = %f, norm = %f\n", total_sim, norm1_offset, norm2_offset, norm);
 
@@ -484,5 +588,5 @@ return_soft_tfidf_score:
 
 
 double soft_tfidf_similarity(size_t num_tokens1, char **tokens1, double *token_scores1, size_t num_tokens2, char **tokens2, double *token_scores2, soft_tfidf_options_t options, size_t *num_matches) {
-    return soft_tfidf_similarity_with_phrases_and_acronyms(num_tokens1, tokens1, token_scores1, NULL, num_tokens2, tokens2, token_scores2, NULL, NULL, options, num_matches);
+    return soft_tfidf_similarity_with_phrases_and_acronyms(num_tokens1, tokens1, token_scores1, NULL, NULL, num_tokens2, tokens2, token_scores2, NULL, NULL, NULL, NULL, options, num_matches);
 }

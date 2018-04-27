@@ -78,6 +78,8 @@ char *utf8_upper(const char *s);
 
 int utf8_compare(const char *str1, const char *str2);
 int utf8_compare_len(const char *str1, const char *str2, size_t len);
+int utf8_compare_case_insensitive(const char *str1, const char *str2, size_t len);
+int utf8_compare_len_case_insensitive(const char *str1, const char *str2, size_t len);
 size_t utf8_common_prefix(const char *str1, const char *str2);
 size_t utf8_common_prefix_len(const char *str1, const char *str2, size_t len);
 size_t utf8_common_prefix_ignore_separators(const char *str1, const char *str2);
@@ -119,6 +121,9 @@ ssize_t string_next_period(char *str);
 
 bool string_contains_period_len(char *str, size_t len);
 bool string_contains_period(char *str);
+
+ssize_t string_next_whitespace_len(char *str, size_t len);
+ssize_t string_next_whitespace(char *str);
 
 size_t string_left_spaces_len(char *str, size_t len);
 size_t string_right_spaces_len(char *str, size_t len);

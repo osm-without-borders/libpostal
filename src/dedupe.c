@@ -7,6 +7,7 @@
 #include "place.h"
 #include "scanner.h"
 #include "soft_tfidf.h"
+#include "string_similarity.h"
 #include "token_types.h"
 
 bool expansions_intersect(cstring_array *expansions1, cstring_array *expansions2) {
@@ -357,11 +358,15 @@ libpostal_fuzzy_duplicate_status_t is_fuzzy_duplicate(size_t num_tokens1, char *
     char **languages = options.languages;
 
     phrase_array *acronym_alignments = NULL;
-    
+    phrase_array *multi_word_alignments = NULL;
+
     phrase_array *phrases1 = NULL;
     phrase_array *phrases2 = NULL;
 
     bool is_ideographic = have_ideographic_word_tokens(token_array1) && have_ideographic_word_tokens(token_array2);
+
+    uint32_array *ordinal_suffixes1 = uint32_array_new_size(num_tokens1);
+    uint32_array *ordinal_suffixes2 = uint32_array_new_size(num_tokens2);
 
     size_t min_len = num_tokens1 < num_tokens2 ? num_tokens1 : num_tokens2;
     size_t num_matches = 0;
@@ -370,6 +375,7 @@ libpostal_fuzzy_duplicate_status_t is_fuzzy_duplicate(size_t num_tokens1, char *
         if (do_acronyms) {
             acronym_alignments = acronym_token_alignments(joined1, token_array1, joined2, token_array2, num_languages, languages);
         }
+        multi_word_alignments = multi_word_token_alignments(joined1, token_array1, joined2, token_array2);
 
         if (num_languages > 0) {
             phrases1 = phrase_array_new();
@@ -383,9 +389,15 @@ libpostal_fuzzy_duplicate_status_t is_fuzzy_duplicate(size_t num_tokens1, char *
                 search_address_dictionaries_tokens_with_phrases(joined1, token_array1, lang, &phrases1);
                 search_address_dictionaries_tokens_with_phrases(joined2, token_array2, lang, &phrases2);
 
+                uint32_array_clear(ordinal_suffixes1);
+                uint32_array_clear(ordinal_suffixes2);
+
+                add_ordinal_suffix_lengths(ordinal_suffixes1, joined1, token_array1, lang);
+                add_ordinal_suffix_lengths(ordinal_suffixes2, joined2, token_array2, lang);
+
                 size_t matches_i = 0;
 
-                double sim = soft_tfidf_similarity_with_phrases_and_acronyms(num_tokens1, tokens1, token_scores1, phrases1, num_tokens2, tokens2, token_scores2, phrases2, acronym_alignments, soft_tfidf_options, &matches_i);
+                double sim = soft_tfidf_similarity_with_phrases_and_acronyms(num_tokens1, tokens1, token_scores1, phrases1, ordinal_suffixes1, num_tokens2, tokens2, token_scores2, phrases2, ordinal_suffixes2, acronym_alignments, multi_word_alignments, soft_tfidf_options, &matches_i);
                 if (sim > max_sim) {
                     max_sim = sim;
                 }
@@ -394,8 +406,8 @@ libpostal_fuzzy_duplicate_status_t is_fuzzy_duplicate(size_t num_tokens1, char *
                     num_matches = matches_i;
                 }
             }
-        } else if (do_acronyms) {
-            max_sim = soft_tfidf_similarity_with_phrases_and_acronyms(num_tokens1, tokens1, token_scores1, phrases1, num_tokens2, tokens2, token_scores2, phrases2, acronym_alignments, soft_tfidf_options, &num_matches);
+        } else if (do_acronyms || multi_word_alignments != NULL) {
+            max_sim = soft_tfidf_similarity_with_phrases_and_acronyms(num_tokens1, tokens1, token_scores1, phrases1, NULL, num_tokens2, tokens2, token_scores2, phrases2, NULL, acronym_alignments, multi_word_alignments, soft_tfidf_options, &num_matches);
         } else {
             max_sim = soft_tfidf_similarity(num_tokens1, tokens1, token_scores1, num_tokens2, tokens2, token_scores2, soft_tfidf_options, &num_matches);
         }
@@ -436,8 +448,20 @@ libpostal_fuzzy_duplicate_status_t is_fuzzy_duplicate(size_t num_tokens1, char *
         phrase_array_destroy(phrases2);
     }
 
+    if (ordinal_suffixes1 != NULL) {
+        uint32_array_destroy(ordinal_suffixes1);
+    }
+
+    if (ordinal_suffixes2 != NULL) {
+        uint32_array_destroy(ordinal_suffixes2);
+    }
+
     if (acronym_alignments != NULL) {
         phrase_array_destroy(acronym_alignments);
+    }
+
+    if (multi_word_alignments != NULL) {
+        phrase_array_destroy(multi_word_alignments);
     }
 
     if (token_array1 != NULL) {
