@@ -7,7 +7,7 @@
         "6": "city"
         "8": "state_district"
         "9": "city"
-        "10": "city"
+        "10": "suburb"
 
     overrides:
         contained_by:
