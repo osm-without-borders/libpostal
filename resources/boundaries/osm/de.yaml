@@ -11,6 +11,116 @@
         "11": "suburb"
 
     overrides:
+        id:
+            relation:
+                # Cities with "admin_level" != 8
+                # and "de:place"=city
+                "27020": "city" # Flensburg
+                "27021": "city" # Kiel
+                "27027": "city" # Lübeck
+                "62340": "city" # Baden-Baden
+                "62347": "city" # Ludwigshafen am Rhein
+                "62349": "city" # Kaufbeuren
+                "62352": "city" # Speyer
+                "62369": "city" # Potsdam
+                "62370": "city" # Eisenach
+                "62374": "city" # Fürth
+                "62381": "city" # Ingolstadt
+                "62385": "city" # Mülheim an der Ruhr
+                "62391": "city" # Landau in der Pfalz
+                "62396": "city" # Herne
+                "62400": "city" # Frankfurt am Main
+                "62403": "city" # Erlangen
+                "62405": "city" # Rostock
+                "62407": "city" # Augsburg
+                "62409": "city" # Oldenburg
+                "62410": "city" # Mönchengladbach
+                "62411": "city" # Regensburg
+                "62414": "city" # Delmenhorst
+                "62418": "city" # Wolfsburg
+                "62422": "city" # Berlin
+                "62428": "city" # München
+                "62430": "city" # Cottbus - Chóśebuz
+                "62444": "city" # Wilhelmshaven
+                "62449": "city" # Leverkusen
+                "62450": "city" # Suhl
+                "62453": "city" # Worms
+                "62455": "city" # Remscheid
+                "62456": "city" # Duisburg
+                "62464": "city" # Würzburg
+                "62470": "city" # Brandenburg an der Havel
+                "62471": "city" # Pforzheim
+                "62478": "city" # Wuppertal
+                "62481": "city" # Magdeburg
+                "62484": "city" # Landshut
+                "62493": "city" # Weimar
+                "62495": "city" # Ulm
+                "62496": "city" # Wiesbaden
+                "62499": "city" # Hamm
+                "62508": "city" # Bonn
+                "62512": "city" # Koblenz
+                "62518": "city" # Karlsruhe
+                "62522": "city" # Gelsenkirchen
+                "62523": "city" # Frankfurt (Oder)
+                "62525": "city" # Bamberg
+                "62526": "city" # Dessau-Roßlau
+                "62528": "city" # Neumünster
+                "62531": "city" # Braunschweig
+                "62532": "city" # Aschaffenburg
+                "62534": "city" # Schweinfurt
+                "62539": "city" # Düsseldorf
+                "62554": "city" # Weiden in der Oberpfalz
+                "62559": "city" # Bremen
+                "62562": "city" # Emden
+                "62573": "city" # Frankenthal (Pfalz)
+                "62578": "city" # Köln
+                "62581": "city" # Darmstadt
+                "62589": "city" # Hof
+                "62590": "city" # Memmingen
+                "62594": "city" # Chemnitz
+                "62598": "city" # Kassel
+                "62629": "city" # Passau
+                "62630": "city" # Mainz
+                "62631": "city" # Osnabrück
+                "62634": "city" # Bottrop
+                "62636": "city" # Straubing
+                "62638": "city" # Halle (Saale)
+                "62640": "city" # Bayreuth
+                "62642": "city" # Pirmasens
+                "62644": "city" # Bochum
+                "62646": "city" # Bielefeld
+                "62649": "city" # Leipzig
+                "62652": "city" # Kaiserslautern
+                "62654": "city" # Ansbach
+                "62658": "city" # Bremerhaven
+                "62659": "city" # Salzgitter
+                "62671": "city" # Gera
+                "62685": "city" # Schwerin
+                "62691": "city" # Mannheim
+                "62693": "city" # Jena
+                "62695": "city" # Offenbach am Main
+                "62699": "city" # Solingen
+                "62701": "city" # Kempten (Allgäu)
+                "62713": "city" # Essen
+                "62717": "city" # Coburg
+                "62719": "city" # Zweibrücken
+                "62720": "city" # Schwabach
+                "62724": "city" # Neustadt an der Weinstraße
+                "62734": "city" # Oberhausen
+                "62745": "city" # Erfurt
+                "62748": "city" # Krefeld
+                "62751": "city" # Heilbronn
+                "62768": "city" # Freiburg im Breisgau
+                "62772": "city" # Amberg
+                "62780": "city" # Nürnberg
+                "172679": "city" # Trier
+                "191645": "city" # Dresden
+                "285864": "city" # Heidelberg
+                "1800297": "city" # Hagen
+                "1829065": "city" # Dortmund
+                "2168233": "city" # Rosenheim
+                "2793104": "city" # Stuttgart"
+
         contained_by:
             relation:
                 # Berlin
