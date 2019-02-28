@@ -13,6 +13,8 @@
     overrides:
         id:
             relation:
+                "62782": "city" # Hamburg
+
                 # Cities with "admin_level" != 8
                 # and "de:place"=city
                 "27020": "city" # Flensburg
