@@ -10,6 +10,15 @@
     overrides:
         id:
             relation:
-                # Vienna
-                "109166": "city"
-
+                # "Statutory cities" (both level 6 and 8)
+                "109166": "city" # Wien
+                "4835169": city" # Innsbruck
+                "34719": "city"  # Graz
+                "86538": "city"  # Salzburg
+                "63175": "city"  # Wels
+                "90143": "city"  # Steyr
+                "86708": "city"  # Linz
+                "79747": "city"  # Eisenstadt
+                "105870": "city" # Klagenfurt am Wörthersee
+                "78752": "city"  # Rust
+                "106163": "city" # Villach
