@@ -1,5 +1,5 @@
 ---
-    admin_level: 
+    admin_level:
         "2": "country"
         "4": "state"
         "6": "state_district"
@@ -12,7 +12,7 @@
             relation:
                 # "Statutory cities" (both level 6 and 8)
                 "109166": "city" # Wien
-                "4835169": city" # Innsbruck
+                "4835169": "city" # Innsbruck
                 "34719": "city"  # Graz
                 "86538": "city"  # Salzburg
                 "63175": "city"  # Wels
